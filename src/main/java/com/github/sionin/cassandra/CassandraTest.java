@@ -36,7 +36,7 @@ public class CassandraTest {
 
         time = System.currentTimeMillis() - time;
         System.out.println("Data prepare time: " + time);
-
+        System.out.println("\n");
 
 //        System.out.println("Test java-driver fetchSize = " + NUMBER_OF_ROWS / 2);
 //        IClient jdClient = getJDClient(NUMBER_OF_ROWS / 2);

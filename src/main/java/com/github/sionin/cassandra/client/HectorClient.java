@@ -63,6 +63,7 @@ public class HectorClient implements IClient {
     public List<TORow> readAll() {
 
         List<Row<String, String, byte[]>> rows = getRows();
+        assert rows.size() >= fetchSize / 10;
 
 //        List<TORow> result = transformRows(rows);
 

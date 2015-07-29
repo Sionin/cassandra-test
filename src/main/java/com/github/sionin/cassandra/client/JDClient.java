@@ -103,6 +103,7 @@ public class JDClient implements IClient {
     public List<TORow> readAll() {
 
         List<Row> rows = getRows();
+        assert rows.size() >= fetchSize / 10;
 
 //        List<TORow> result = transformRows(rows);
 
