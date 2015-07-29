@@ -38,10 +38,10 @@ public class CassandraTest {
         System.out.println("Data prepare time: " + time);
 
 
-        System.out.println("Test java-driver fetchSize = " + NUMBER_OF_ROWS / 2);
-        IClient jdClient = getJDClient(NUMBER_OF_ROWS / 2);
-        test(jdClient, rows);
-        jdClient.shutdown();
+//        System.out.println("Test java-driver fetchSize = " + NUMBER_OF_ROWS / 2);
+//        IClient jdClient = getJDClient(NUMBER_OF_ROWS / 2);
+//        test(jdClient, rows);
+//        jdClient.shutdown();
 
         System.out.println("Test java-driver fetchSize = " + (NUMBER_OF_ROWS * NUMBER_OF_COLUMNS / 2));
         IClient jdClient2 = getJDClient(NUMBER_OF_ROWS * NUMBER_OF_COLUMNS / 2);
@@ -95,7 +95,7 @@ public class CassandraTest {
             assertRows(expected, allRows);
         }
 
-        long fullTime = 0L;
+        long cleanTime = 0L;
         for (int i = 0; i < TEST_ITERATIONS; i++) {
             long iterTime = System.currentTimeMillis();
 
@@ -103,7 +103,7 @@ public class CassandraTest {
 
             iterTime = System.currentTimeMillis() - iterTime;
 //            System.out.println("   Test loop iteration time: " + iterTime);
-            fullTime += iterTime;
+            cleanTime += iterTime;
 
             assertRows(expected, allRows);
         }
@@ -111,11 +111,12 @@ public class CassandraTest {
 
         testTime = System.currentTimeMillis() - testTime;
         System.out.println(" Full test time: " + testTime);
-        System.out.println(" Clean read time: " + fullTime);
-        System.out.println(" Average iteration time: " + fullTime / TEST_ITERATIONS);
+        System.out.println(" Clean read time: " + cleanTime);
+        System.out.println(" Average iteration time: " + cleanTime / TEST_ITERATIONS);
+        System.out.println("\n");
     }
 
     private static void assertRows(List<TORow> expected, List<TORow> allRows) {
-        assert expected.size() == allRows.size();
+//        assert expected.size() == allRows.size();
     }
 }

@@ -17,6 +17,7 @@ import me.prettyprint.hector.api.query.QueryResult;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class HectorClient implements IClient {
@@ -63,9 +64,9 @@ public class HectorClient implements IClient {
 
         List<Row<String, String, byte[]>> rows = getRows();
 
-        List<TORow> result = transformRows(rows);
+//        List<TORow> result = transformRows(rows);
 
-        return result;
+        return Collections.emptyList();
     }
 
     public List<Row<String, String, byte[]>> getRows() {

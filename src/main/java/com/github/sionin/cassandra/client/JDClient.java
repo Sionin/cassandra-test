@@ -13,6 +13,7 @@ import com.google.common.collect.Iterators;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -103,9 +104,9 @@ public class JDClient implements IClient {
 
         List<Row> rows = getRows();
 
-        List<TORow> result = transformRows(rows);
+//        List<TORow> result = transformRows(rows);
 
-        return result;
+        return Collections.emptyList();
     }
 
     public List<Row> getRows() {
