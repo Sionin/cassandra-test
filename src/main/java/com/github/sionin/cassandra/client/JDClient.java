@@ -9,6 +9,9 @@ import com.github.sionin.cassandra.data.TOColumn;
 import com.github.sionin.cassandra.data.TORow;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -28,7 +31,7 @@ public class JDClient implements IClient {
                     "PRIMARY KEY (key, column1)" +
                     ") WITH COMPACT STORAGE  AND caching = 'none';";
     public static final String TRUNCATE = "TRUNCATE \"%s\".\"%s\";";
-    public static final String INSERT = "INSERT INTO \"%s\".\"%s\"(key, column1, value) VALUES (?, ?, ?)";
+    public static final String INSERT = "INSERT INTO \"%s\".\"%s\" (key, column1, value) VALUES (?, ?, ?)";
 
 
     Cluster cluster;
@@ -110,7 +113,14 @@ public class JDClient implements IClient {
         return Collections.emptyList();
     }
 
+
     public List<Row> getRows() {
+        Select select = all();
+        ResultSet resultSet = session.execute(select);
+        return resultSet.all();
+    }
+
+    public Select all() {
         Select select = QueryBuilder.select()
                 .column("key")
                 .column("column1")
@@ -119,8 +129,22 @@ public class JDClient implements IClient {
                 .from(keyspace, table);
         select.setFetchSize(fetchSize);
         select.setConsistencyLevel(ConsistencyLevel.QUORUM);
-        ResultSet resultSet = session.execute(select);
-        return resultSet.all();
+        return select;
+    }
+
+    public List<TORow> read(List<String> keys) {
+        List<List<String>> partitions = Lists.partition(keys, 10);
+        List<ListenableFuture> results = new ArrayList<ListenableFuture>(partitions.size());
+
+        for (List<String> keysPartition : partitions) {
+            Select.Where select = all().where(QueryBuilder.in("key", keysPartition));
+            results.add(session.executeAsync(select));
+        }
+
+        Futures
+
+
+        return null;
     }
 
     public List<TORow> transformRows(List<Row> rows) {

@@ -4,6 +4,8 @@ import com.github.sionin.cassandra.client.HectorClient;
 import com.github.sionin.cassandra.client.IClient;
 import com.github.sionin.cassandra.client.JDClient;
 import com.github.sionin.cassandra.data.TORow;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,19 +14,42 @@ import java.util.UUID;
 public class CassandraTest {
 
 
-    public static final String[] HOSTS = new String[]{"localhost"};
-    public static final String CLUSTER = "testcluster";
-    public static final String KEYSPACE = "testkeyspace";
-    public static final String TABLE = "testtable";
+    public static String[] HOSTS;
+    public static String CLUSTER;
+    public static String KEYSPACE;
+    public static String TABLE;
+    public static int NUMBER_OF_ROWS;
+    public static int NUMBER_OF_COLUMNS;
 
+    public static int TEST_ITERATIONS = 100;
 
-    public static final int TEST_ITERATIONS = 100;
+    private static OptionParser defaultParser() {
+        OptionParser parser = new OptionParser() {{
+            accepts("h", "Show this help message");
+            accepts("hosts", "C* hosts").withOptionalArg().ofType(String.class).defaultsTo("localhost");
+            accepts("cluster", "C* cluster").withOptionalArg().ofType(String.class).defaultsTo("testcluster");
+            accepts("keyspace", "Keyspace for test").withOptionalArg().ofType(String.class).defaultsTo("testkeyspace");
+            accepts("table", "Table for test").withOptionalArg().ofType(String.class).defaultsTo("testtable");
+            accepts("r", "Number of row to create").withOptionalArg().ofType(Integer.class).defaultsTo(100);
+            accepts("c", "Number of columns to create in every row").withOptionalArg().ofType(Integer.class).defaultsTo(500);
+            accepts("n", "Number of test iterations").withOptionalArg().ofType(Integer.class).defaultsTo(100);
+        }};
+        return parser;
+    }
 
-
-    public static final int NUMBER_OF_ROWS = 100;
-    public static final int NUMBER_OF_COLUMNS = 500;
 
     public static void main(String[] args) {
+
+        OptionSet optionSet = defaultParser().parse(args);
+
+        HOSTS = ((String) optionSet.valueOf("hosts")).split("[ ]*,[ ]*");
+        CLUSTER = (String) optionSet.valueOf("cluster");
+        KEYSPACE = (String) optionSet.valueOf("keyspace");
+        TABLE = (String) optionSet.valueOf("table");
+        NUMBER_OF_ROWS = (Integer) optionSet.valueOf("r");
+        NUMBER_OF_COLUMNS = (Integer) optionSet.valueOf("c");
+        TEST_ITERATIONS = (Integer) optionSet.valueOf("n");
+
 
         List<TORow> rows = generateTestData(NUMBER_OF_ROWS, NUMBER_OF_COLUMNS);
 
@@ -90,7 +115,7 @@ public class CassandraTest {
     public static void test(IClient client, List<TORow> expected) {
         long testTime = System.currentTimeMillis();
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < TEST_ITERATIONS / 10; i++) {
             List<TORow> allRows = client.readAll();
             assertRows(expected, allRows);
         }
