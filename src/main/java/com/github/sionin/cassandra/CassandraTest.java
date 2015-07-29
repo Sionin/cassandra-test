@@ -17,14 +17,20 @@ public class CassandraTest {
     public static final String KEYSPACE = "testkeyspace";
     public static final String TABLE = "testtable";
 
+
+    public static final int TEST_ITERATIONS = 100;
+
+
+    public static final int NUMBER_OF_ROWS = 100;
+    public static final int NUMBER_OF_COLUMNS = 500;
+
     public static void main(String[] args) {
 
-
-        List<TORow> rows = generateTestData(100, 500);
+        List<TORow> rows = generateTestData(NUMBER_OF_ROWS, NUMBER_OF_COLUMNS);
 
         long time = System.currentTimeMillis();
 
-        IClient client = getJDClient(50 * 100);
+        IClient client = getJDClient(1000);
         client.cleanAndInsert(rows);
         client.shutdown();
 
@@ -32,26 +38,31 @@ public class CassandraTest {
         System.out.println("Data prepare time: " + time);
 
 
-        System.out.println("Test java-driver fetchSize = " + 50);
-        IClient jdClient = getJDClient(50);
+        System.out.println("Test java-driver fetchSize = " + NUMBER_OF_ROWS / 2);
+        IClient jdClient = getJDClient(NUMBER_OF_ROWS / 2);
         test(jdClient, rows);
         jdClient.shutdown();
 
-        System.out.println("Test java-driver fetchSize = " + 5000);
-        IClient jdClient2 = getJDClient(5000);
+        System.out.println("Test java-driver fetchSize = " + (NUMBER_OF_ROWS * NUMBER_OF_COLUMNS / 2));
+        IClient jdClient2 = getJDClient(NUMBER_OF_ROWS * NUMBER_OF_COLUMNS / 2);
         test(jdClient2, rows);
         jdClient2.shutdown();
 
-        System.out.println("Test java-driver fetchSize = " + 10000);
-        IClient jdClient3 = getJDClient(10000);
+        System.out.println("Test java-driver fetchSize = " + (NUMBER_OF_ROWS * NUMBER_OF_COLUMNS));
+        IClient jdClient3 = getJDClient((NUMBER_OF_ROWS * NUMBER_OF_COLUMNS));
         test(jdClient3, rows);
         jdClient3.shutdown();
 
 
-        System.out.println("Tests hector fetchSize = " + 50);
-        IClient hectorClient = getHectorClient(50);
+        System.out.println("Tests hector fetchSize = " + NUMBER_OF_ROWS / 2);
+        IClient hectorClient = getHectorClient(NUMBER_OF_ROWS / 2);
         test(hectorClient, rows);
         hectorClient.shutdown();
+
+        System.out.println("Tests hector fetchSize = " + NUMBER_OF_ROWS);
+        IClient hectorClient2 = getHectorClient(NUMBER_OF_ROWS);
+        test(hectorClient2, rows);
+        hectorClient2.shutdown();
 
         System.exit(0);
     }
@@ -85,7 +96,7 @@ public class CassandraTest {
         }
 
         long fullTime = 0L;
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < TEST_ITERATIONS; i++) {
             long iterTime = System.currentTimeMillis();
 
             List<TORow> allRows = client.readAll();
@@ -101,7 +112,7 @@ public class CassandraTest {
         testTime = System.currentTimeMillis() - testTime;
         System.out.println(" Full test time: " + testTime);
         System.out.println(" Clean read time: " + fullTime);
-        System.out.println(" Average iteration time: " + fullTime / 100);
+        System.out.println(" Average iteration time: " + fullTime / TEST_ITERATIONS);
     }
 
     private static void assertRows(List<TORow> expected, List<TORow> allRows) {
