@@ -99,7 +99,16 @@ public class JDClient implements IClient {
         session.execute(batchStatement);
     }
 
-    Select all() {
+    public List<TORow> readAll() {
+
+        List<Row> rows = getRows();
+
+        List<TORow> result = transformRows(rows);
+
+        return result;
+    }
+
+    public List<Row> getRows() {
         Select select = QueryBuilder.select()
                 .column("key")
                 .column("column1")
@@ -108,17 +117,13 @@ public class JDClient implements IClient {
                 .from(keyspace, table);
         select.setFetchSize(fetchSize);
         select.setConsistencyLevel(ConsistencyLevel.QUORUM);
-        return select;
+        ResultSet resultSet = session.execute(select);
+        return resultSet.all();
     }
 
-    public List<TORow> readAll() {
-
-        Select select = all();
-        ResultSet resultSet = session.execute(select);
-
+    public List<TORow> transformRows(List<Row> rows) {
         List<TORow> result = new ArrayList<TORow>();
-
-        Iterator<Row> iterator = resultSet.iterator();
+        Iterator<Row> iterator = rows.iterator();
 
         List<Row> acc = new ArrayList<Row>(128);
         ByteBuffer accKey = null;
@@ -136,7 +141,6 @@ public class JDClient implements IClient {
                 accKey = key;
             }
         }
-
         return result;
     }
 

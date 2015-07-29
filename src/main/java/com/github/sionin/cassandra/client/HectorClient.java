@@ -61,14 +61,24 @@ public class HectorClient implements IClient {
 
     public List<TORow> readAll() {
 
+        List<Row<String, String, byte[]>> rows = getRows();
+
+        List<TORow> result = transformRows(rows);
+
+        return result;
+    }
+
+    public List<Row<String, String, byte[]>> getRows() {
         String select = String.format(SELECT, table);
         CqlQuery<String, String, byte[]> cqlQuery = new CqlQuery(keyspace, StringSerializer.get(), StringSerializer.get(), BytesArraySerializer.get());
         cqlQuery.setQuery(select);
         cqlQuery.setSuppressKeyInColumns(true);
         QueryResult<CqlRows<String, String, byte[]>> queryResult = cqlQuery.execute();
 
-        List<Row<String, String, byte[]>> rows = queryResult.get().getList();
+        return queryResult.get().getList();
+    }
 
+    public List<TORow> transformRows(List<Row<String, String, byte[]>> rows) {
         List<TORow> result = new ArrayList<TORow>();
 
         for (Row<String, String, byte[]> row : rows) {
@@ -84,8 +94,6 @@ public class HectorClient implements IClient {
                 }
             }
         }
-
-
         return result;
     }
 
