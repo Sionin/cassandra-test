@@ -108,7 +108,7 @@ public class JDClient implements IClient {
         List<Row> rows = getRows();
         assert rows.size() >= fetchSize / 10;
 
-//        List<TORow> result = transformRows(rows);
+//        List<TORow> result = transformRows(rows.iterator());
 
         return Collections.emptyList();
     }
@@ -132,30 +132,43 @@ public class JDClient implements IClient {
         return select;
     }
 
-    public List<TORow> read(List<String> keys) {
-        List<List<String>> partitions = Lists.partition(keys, 10);
-        List<ListenableFuture> results = new ArrayList<ListenableFuture>(partitions.size());
+    public List<TORow> read(List<String> keys, int partition) {
+
+        List<List<String>> partitions = Lists.partition(keys, partition);
+        List<ListenableFuture<ResultSet>> results = new ArrayList(partitions.size());
 
         for (List<String> keysPartition : partitions) {
-            Select.Where select = all().where(QueryBuilder.in("key", keysPartition));
-            results.add(session.executeAsync(select));
+            ResultSetFuture resultSetFuture = readAsync(keysPartition);
+            results.add(resultSetFuture);
         }
 
-        Futures
+        ListenableFuture<List<ResultSet>> future = Futures.allAsList(results);
+        final List<ResultSet> resultSets = Futures.getUnchecked(future);
 
+        List<Iterator<Row>> transform = Lists.transform(resultSets, new Function<ResultSet, Iterator<Row>>() {
+            public Iterator<Row> apply(ResultSet resultSet) {
+                return resultSet.iterator();
+            }
+        });
 
-        return null;
+//        List<TORow> result = transformRows(Iterators.concat(transform.iterator()));
+
+        return Collections.emptyList();
     }
 
-    public List<TORow> transformRows(List<Row> rows) {
+    public ResultSetFuture readAsync(List<String> keysPartition) {
+        Select.Where select = all().where(QueryBuilder.in("key", keysPartition));
+        return session.executeAsync(select);
+    }
+
+    public List<TORow> transformRows(Iterator<Row> rows) {
         List<TORow> result = new ArrayList<TORow>();
-        Iterator<Row> iterator = rows.iterator();
 
         List<Row> acc = new ArrayList<Row>(128);
         ByteBuffer accKey = null;
 
-        while (iterator.hasNext()) {
-            Row row = iterator.next();
+        while (rows.hasNext()) {
+            Row row = rows.next();
             ByteBuffer key = row.getBytesUnsafe("key");
             if (key.equals(accKey)) {
                 acc.add(row);

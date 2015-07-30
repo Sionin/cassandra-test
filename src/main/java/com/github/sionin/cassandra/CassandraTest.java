@@ -4,6 +4,8 @@ import com.github.sionin.cassandra.client.HectorClient;
 import com.github.sionin.cassandra.client.IClient;
 import com.github.sionin.cassandra.client.JDClient;
 import com.github.sionin.cassandra.data.TORow;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
@@ -52,6 +54,11 @@ public class CassandraTest {
 
 
         List<TORow> rows = generateTestData(NUMBER_OF_ROWS, NUMBER_OF_COLUMNS);
+        List<String> keys = Lists.transform(rows, new Function<TORow, String>() {
+            public String apply(TORow toRow) {
+                return toRow.key;
+            }
+        });
 
         long time = System.currentTimeMillis();
 
@@ -63,30 +70,35 @@ public class CassandraTest {
         System.out.println("Data prepare time: " + time);
         System.out.println("\n");
 
-//        System.out.println("Test java-driver fetchSize = " + NUMBER_OF_ROWS / 2);
-//        IClient jdClient = getJDClient(NUMBER_OF_ROWS / 2);
-//        test(jdClient, rows);
-//        jdClient.shutdown();
+        System.out.println("Test java-driver partitions");
+        IClient jdClient = getJDClient(15000);
+        for (int partition = 5; partition < 101; partition += 5) {
+            testReadKeys(jdClient, rows, keys, partition);
+        }
+        for (int partition = 5; partition < 101; partition += 5) {
+            testReadKeys(jdClient, rows, keys, partition);
+        }
+        jdClient.shutdown();
 
-        System.out.println("Test java-driver fetchSize = " + (NUMBER_OF_ROWS * NUMBER_OF_COLUMNS / 2));
-        IClient jdClient2 = getJDClient(NUMBER_OF_ROWS * NUMBER_OF_COLUMNS / 2);
-        test(jdClient2, rows);
-        jdClient2.shutdown();
-
-        System.out.println("Test java-driver fetchSize = " + (NUMBER_OF_ROWS * NUMBER_OF_COLUMNS));
-        IClient jdClient3 = getJDClient((NUMBER_OF_ROWS * NUMBER_OF_COLUMNS));
-        test(jdClient3, rows);
-        jdClient3.shutdown();
-
-
+//        System.out.println("Test java-driver fetchSize = " + (NUMBER_OF_ROWS * NUMBER_OF_COLUMNS / 2));
+//        IClient jdClient2 = getJDClient(NUMBER_OF_ROWS * NUMBER_OF_COLUMNS / 2);
+//        testReadAll(jdClient2, rows);
+//        jdClient2.shutdown();
+//
+//        System.out.println("Test java-driver fetchSize = " + (NUMBER_OF_ROWS * NUMBER_OF_COLUMNS));
+//        IClient jdClient3 = getJDClient((NUMBER_OF_ROWS * NUMBER_OF_COLUMNS));
+//        testReadAll(jdClient3, rows);
+//        jdClient3.shutdown();
+//
+//
         System.out.println("Tests hector fetchSize = " + NUMBER_OF_ROWS / 2);
         IClient hectorClient = getHectorClient(NUMBER_OF_ROWS / 2);
-        test(hectorClient, rows);
+        testReadAll(hectorClient, rows);
         hectorClient.shutdown();
 
         System.out.println("Tests hector fetchSize = " + NUMBER_OF_ROWS);
         IClient hectorClient2 = getHectorClient(NUMBER_OF_ROWS);
-        test(hectorClient2, rows);
+        testReadAll(hectorClient2, rows);
         hectorClient2.shutdown();
 
         System.exit(0);
@@ -112,7 +124,37 @@ public class CassandraTest {
         return new HectorClient(HOSTS, CLUSTER, KEYSPACE, TABLE, fetchSize);
     }
 
-    public static void test(IClient client, List<TORow> expected) {
+    public static void testReadKeys(IClient client, List<TORow> expected, List<String> keys, int partition) {
+        long testTime = System.currentTimeMillis();
+
+//        for (int i = 0; i < TEST_ITERATIONS / 10; i++) {
+//            List<TORow> allRows = client.readAll();
+//            assertRows(expected, allRows);
+//        }
+
+        long cleanTime = 0L;
+        for (int i = 0; i < TEST_ITERATIONS; i++) {
+            long iterTime = System.currentTimeMillis();
+
+            List<TORow> allRows = client.read(keys, partition);
+
+            iterTime = System.currentTimeMillis() - iterTime;
+//            System.out.println("   Test loop iteration time: " + iterTime);
+            cleanTime += iterTime;
+
+            assertRows(expected, allRows);
+        }
+
+        System.out.println(" Partition: " + partition + " average time: " + cleanTime / TEST_ITERATIONS);
+
+        testTime = System.currentTimeMillis() - testTime;
+//        System.out.println(" Full test time: " + testTime);
+//        System.out.println(" Clean read time: " + cleanTime);
+//        System.out.println(" Average iteration time: " + cleanTime / TEST_ITERATIONS);
+//        System.out.println("\n");
+    }
+
+    public static void testReadAll(IClient client, List<TORow> expected) {
         long testTime = System.currentTimeMillis();
 
         for (int i = 0; i < TEST_ITERATIONS / 10; i++) {

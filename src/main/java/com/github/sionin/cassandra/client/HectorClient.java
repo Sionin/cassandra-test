@@ -70,6 +70,10 @@ public class HectorClient implements IClient {
         return Collections.emptyList();
     }
 
+    public List<TORow> read(List<String> keys, int partition) {
+        return readAll();
+    }
+
     public List<Row<String, String, byte[]>> getRows() {
         String select = String.format(SELECT, table);
         CqlQuery<String, String, byte[]> cqlQuery = new CqlQuery(keyspace, StringSerializer.get(), StringSerializer.get(), BytesArraySerializer.get());

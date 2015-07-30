@@ -10,7 +10,7 @@ public interface IClient {
 
     List<TORow> readAll();
 
-    List<TORow> read(List<String> keys);
+    List<TORow> read(List<String> keys, int partition);
 
     void shutdown();
 }
