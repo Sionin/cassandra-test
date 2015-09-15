@@ -10,7 +10,6 @@ import com.github.sionin.cassandra.data.TORow;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.nio.ByteBuffer;
@@ -19,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class JDClient implements IClient {
 
@@ -108,7 +108,7 @@ public class JDClient implements IClient {
         List<Row> rows = getRows();
         assert rows.size() >= fetchSize / 10;
 
-//        List<TORow> result = transformRows(rows.iterator());
+        List<TORow> result = transformRows(rows.iterator());
 
         return Collections.emptyList();
     }
@@ -132,26 +132,31 @@ public class JDClient implements IClient {
         return select;
     }
 
-    public List<TORow> read(List<String> keys, int partition) {
+    public List<TORow> read(List<String> keys, int partition) throws ExecutionException, InterruptedException {
 
         List<List<String>> partitions = Lists.partition(keys, partition);
-        List<ListenableFuture<ResultSet>> results = new ArrayList(partitions.size());
+        List<ListenableFuture<ResultSet>> futures = new ArrayList(partitions.size());
 
         for (List<String> keysPartition : partitions) {
             ResultSetFuture resultSetFuture = readAsync(keysPartition);
-            results.add(resultSetFuture);
+            futures.add(resultSetFuture);
         }
 
-        ListenableFuture<List<ResultSet>> future = Futures.allAsList(results);
-        final List<ResultSet> resultSets = Futures.getUnchecked(future);
-
-        List<Iterator<Row>> transform = Lists.transform(resultSets, new Function<ResultSet, Iterator<Row>>() {
-            public Iterator<Row> apply(ResultSet resultSet) {
-                return resultSet.iterator();
+        Iterator<Iterator<Row>> transform = Iterators.transform(futures.iterator(), new Function<ListenableFuture<ResultSet>, Iterator<Row>>() {
+            public Iterator<Row> apply(ListenableFuture<ResultSet> resultSetListenableFuture) {
+                try {
+                    return resultSetListenableFuture.get().iterator();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+                return Iterators.emptyIterator();
             }
         });
 
-//        List<TORow> result = transformRows(Iterators.concat(transform.iterator()));
+
+        List<TORow> result = transformRows(Iterators.concat(transform));
 
         return Collections.emptyList();
     }
@@ -169,7 +174,7 @@ public class JDClient implements IClient {
 
         while (rows.hasNext()) {
             Row row = rows.next();
-            ByteBuffer key = row.getBytesUnsafe("key");
+            ByteBuffer key = row.getBytesUnsafe(0);
             if (key.equals(accKey)) {
                 acc.add(row);
             } else {
@@ -187,9 +192,9 @@ public class JDClient implements IClient {
         TORow toRow = new TORow(new String(key.array(), StandardCharsets.UTF_8));
         for (Row row : rows) {
             toRow.add(
-                    row.getString("column1"),
-                    row.getString("value"),
-                    row.getLong("timestamp")
+                    row.getString(1),
+                    row.getString(2),
+                    row.getLong(3)
             );
         }
         return toRow;

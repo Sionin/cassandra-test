@@ -40,7 +40,7 @@ public class CassandraTest {
     }
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         OptionSet optionSet = defaultParser().parse(args);
 
@@ -124,7 +124,7 @@ public class CassandraTest {
         return new HectorClient(HOSTS, CLUSTER, KEYSPACE, TABLE, fetchSize);
     }
 
-    public static void testReadKeys(IClient client, List<TORow> expected, List<String> keys, int partition) {
+    public static void testReadKeys(IClient client, List<TORow> expected, List<String> keys, int partition) throws Exception {
         long testTime = System.currentTimeMillis();
 
 //        for (int i = 0; i < TEST_ITERATIONS / 10; i++) {
